@@ -1,0 +1,142 @@
+/* Background */
+
+.crossword-hints{
+  font-size: 30px;
+  color: #4338ca;
+}
+.login-container {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(to right, #041b3e, #041b3e);
+  font-family: Arial, sans-serif;
+}
+.login-card p{
+  font-size: 18px;
+  color:rgb(234, 234, 237);
+}
+/* Card */
+.login-card {
+  background: #1b0404;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  width: 550px;
+  text-align: center;
+  animation: fadeIn 0.8s ease-in-out;
+}
+
+.login-card h1 {
+  margin-bottom: 20px;
+  color: #f9f3f3;
+}
+
+/* Labels */
+.login-card label {
+  display: block;
+  text-align: left;
+  margin: 10px 0 5px;
+  font-weight: bold;
+  color: #444;
+}
+
+/* Phone number input with country code */
+.phone-input-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.country-code {
+  background: #f3f4f6;
+  padding: 12px 15px;
+  border: 1px solid #ccc;
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+  font-weight: bold;
+  color: #333;
+}
+
+.phone-input-container input {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  outline: none;
+  transition: border 0.3s ease;
+}
+
+.phone-input-container input:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 5px rgba(79, 70, 229, 0.3);
+}
+
+/* Password input */
+.login-card input[type="password"] {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  outline: none;
+  transition: border 0.3s ease;
+}
+
+.login-card input[type="password"]:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 5px rgba(79, 70, 229, 0.3);
+}
+
+/* Button */
+.login-card button {
+  width: 100%;
+  padding: 12px;
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.login-card button:hover {
+  background: #4338ca;
+}
+
+/* Error message */
+.error-message {
+  color: red;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+/* Register text */
+.register-text {
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+.register-text a {
+  color: #4f46e5;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.register-text a:hover {
+  text-decoration: underline;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

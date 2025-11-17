@@ -1,0 +1,15 @@
+/* shared uploader styles */
+.admin-dashboard { padding: 18px; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+.admin-header { display:flex; align-items:center; gap:12px; }
+.prefill-grid { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+.prefill-cell { width:36px; height:36px; text-align:center; font-size:16px; border:1px solid #ddd; border-radius:4px; }
+.sudoku-grid.uploader-grid { display: grid; grid-template-columns: repeat(9, 36px); gap: 6px; margin: 8px 0; }
+.sudoku-cell { width: 36px; height: 36px; text-align:center; font-size:16px; border:1px solid #ddd; border-radius:4px; }
+.sudoku-cell.prefilled { background:#f3f4f6; font-weight:700; }
+.sudoku-cell.solution { background:#fffbe6; }
+.uploader-actions { display:flex; gap:8px; align-items:center; }
+.preview-grid { display:grid; grid-template-columns:repeat(9,28px); gap:4px; margin-top:6px; }
+.preview-cell { width:28px; height:28px; display:flex; align-items:center; justify-content:center; border:1px solid #ddd; border-radius:3px; background:#fff; }
+.status { margin-top:8px; }
+.success { color:#0a7b2d; }
+.error { color:#b00020; }

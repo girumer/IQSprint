@@ -1,0 +1,120 @@
+/* Reset and base styles */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Container for responsiveness */
+.login-form {
+  background-color: #151a1d;
+  padding: 40px 30px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  box-sizing: border-box;
+}
+.phoneNumber{
+  justify-content: center;
+  align-items: center;
+  margin-right: 50px;
+
+}
+/* Headline */
+.login-form h2 {
+  margin-bottom: 20px;
+  color: #2c5364;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+/* Description */
+.login-form p {
+  margin-bottom: 20px;
+  color: #275c72;
+  font-size: 16px;
+  background-color: #f0f4f8;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+/* Inputs */
+.login-form input {
+  width: 95%;
+  padding: 12px 15px;
+  margin: 12px 0;
+  border: 1px solid #ccc;
+  margin-right: 50px;
+  align-items: center;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.3s ease;
+}
+
+.login-form input:focus {
+  border-color: #2c5364;
+  outline: none;
+  box-shadow: 0 0 5px rgba(44, 83, 100, 0.5);
+}
+
+/* Button */
+.login-form button {
+  width: 100%;
+  padding: 12px;
+  background-color: #2c5364;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: background-color 0.3s ease;
+}
+
+.login-form button:hover {
+  background-color: #1e3c52;
+}
+
+/* Signup link */
+.signup-link {
+  margin-top: 20px;
+  font-size: 14px;
+  color: #333;
+}
+
+.signup-link a {
+  color: #2c5364;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.signup-link a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive tweaks */
+@media (max-width: 480px) {
+  .login-form {
+    padding: 30px 20px;
+  }
+
+  .login-form h2 {
+    font-size: 24px;
+  }
+
+  .login-form p {
+    font-size: 14px;
+  }
+
+  .login-form button {
+    font-size: 15px;
+  }
+}
