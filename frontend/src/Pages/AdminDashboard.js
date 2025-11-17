@@ -7,7 +7,7 @@ import TechQuizUploader from './TechQuizUploader';
 import SequenceUploader from './SequenceUploader';
 import UploadSynonym from './UploadSynonym';
 import AnalogyUploader from './AnalogyUploader';
-import Antonyumuploader from './AntonymUploader';
+
 
 export default function AdminDashboard() {
   const [type, setType] = useState('crossword'); // 'crossword' | 'sudoku'
@@ -35,7 +35,7 @@ export default function AdminDashboard() {
         {type === 'sequence' && <SequenceUploader />}
         {type === 'analogy' && <AnalogyUploader />}
         {type === 'synonym' && <UploadSynonym/>}
-         {type === 'Antonyum' && <Antonyumuploader/>}
+         {type === 'Antonyum' && <UploadSynonym/>}
       </main>
     </div>
   );
