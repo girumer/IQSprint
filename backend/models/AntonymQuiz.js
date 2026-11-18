@@ -10,4 +10,7 @@ const AntonymQuizSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Correctly export the model using the corrected Schema variable name
+// Index for queries that sort by creation date
+AntonymQuizSchema.index({ createdAt: 1 });
+
 module.exports = mongoose.model("AntonymQuiz", AntonymQuizSchema);

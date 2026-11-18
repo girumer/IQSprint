@@ -49,4 +49,7 @@ const userSchema = new mongoose.Schema({
     }
 });
 
+// Index for the leaderboard (sorted by coins)
+userSchema.index({ coins: -1 });
+
 module.exports = mongoose.model('User', userSchema);

@@ -49,30 +49,26 @@ export const AuthProvider = ({ children }) => {
           return;
         }
 
-        // 2. Try backend verification (optional but recommended)
-        try {
-          const res = await axios.get(`${process.env.REACT_APP_BACKENDURL}/api/verify-token`, {
-            headers: { Authorization: `Bearer ${token}` },
-            timeout: 5000 // 5 second timeout
-          });
-          console.log("✅ AuthContext: Backend verification successful");
-        } catch (error) {
-          if (error.response?.status === 401) {
-            console.error("❌ AuthContext: Backend rejected token");
-            logout();
-            setLoading(false);
-            return;
-          }
-          // If it's a network error or endpoint doesn't exist, continue with local auth
-          console.warn("⚠️ AuthContext: Backend verification failed, using local auth", error.message);
-        }
-
-        // 3. Set user from localStorage
+        // 2. Token is valid locally: show the page right away
         setUser({ 
           _id: userId, 
           phoneNumber, 
           role, 
           token 
+        });
+        setLoading(false);
+
+        // 3. Confirm with the backend in the background (doesn't block the page)
+        axios.get(`${process.env.REACT_APP_BACKENDURL}/api/verify-token`, {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 5000
+        }).catch(error => {
+          if (error.response?.status === 401) {
+            console.error("❌ AuthContext: Backend rejected token");
+            logout();
+          } else {
+            console.warn("⚠️ AuthContext: Backend verification failed, using local auth", error.message);
+          }
         });
         console.log("✅ AuthContext: User authenticated successfully");
 

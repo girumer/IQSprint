@@ -26,4 +26,7 @@ validator: (arr) => arr.length >= 2,
  }
 });
 
+// Index for queries that sort by creation date
+techQuizSchema.index({ createdAt: 1 });
+
 module.exports = mongoose.model('TechQuiz', techQuizSchema);

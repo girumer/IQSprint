@@ -15,4 +15,7 @@ const crosswordSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+// Index for queries that sort by creation date
+crosswordSchema.index({ createdAt: 1 });
+
 module.exports = mongoose.model('Crossword', crosswordSchema);

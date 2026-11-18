@@ -57,7 +57,6 @@ router.post('/login', async (req, res) => {
 
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
-console.log("JWT_SECRET:", process.env.JWT_SECRET);
 
   const token = jwt.sign(
     { id: user._id, phoneNumber: user.phoneNumber, role: user.role },
@@ -92,7 +91,7 @@ router.get('/users', authMiddleware, async (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Access denied' });
   }
-  const users = await User.find();
+  const users = await User.find().select('-password');
   res.json(users);
 });
 

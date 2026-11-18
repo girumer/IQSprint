@@ -15,4 +15,7 @@ const sudokuSchema = new mongoose.Schema({
   }
 });
 
+// Index for queries that sort by creation date
+sudokuSchema.index({ createdAt: 1 });
+
 module.exports = mongoose.model('Sudoku', sudokuSchema);

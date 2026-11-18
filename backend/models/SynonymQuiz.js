@@ -8,4 +8,7 @@ const SynonymQuizSchema = new mongoose.Schema({
     hint: { type: String } // optional
 }, { timestamps: true });
 
+// Index for queries that sort by creation date
+SynonymQuizSchema.index({ createdAt: 1 });
+
 module.exports = mongoose.model("SynonymQuiz", SynonymQuizSchema);

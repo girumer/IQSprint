@@ -27,4 +27,7 @@ const numberSequenceSchema = new mongoose.Schema({
     }
 });
 
+// Index for queries that sort by creation date
+numberSequenceSchema.index({ createdAt: 1 });
+
 module.exports = mongoose.model('NumberSequence', numberSequenceSchema);

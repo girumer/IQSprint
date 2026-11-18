@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import gameBack from "../assets/loginback.png";
+import gameBack from "../assets/loginback.jpg";
 import { Link, useNavigate } from 'react-router-dom';
 import './Login.css';
 import { useAuth } from '../contexts/AuthContext';

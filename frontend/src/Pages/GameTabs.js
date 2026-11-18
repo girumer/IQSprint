@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./GameTabs.css";
-import gameBack from "../assets/gameback.png";
+import gameBack from "../assets/gameback.jpg";
 import Firework from "./Firework";
 import Popup from "./Popup";
 import axios from 'axios';
@@ -61,6 +61,11 @@ const [initialBoard, setInitialBoard] = useState(null);
   const [crosswordTimeLeft, setCrosswordTimeLeft] = useState(120);
 
   const [activeTab, setActiveTab] = useState("crossword");
+  // Tracks which tabs have been opened, so each game loads only when its tab is first visited
+  const [visitedTabs, setVisitedTabs] = useState({ crossword: true });
+  useEffect(() => {
+    setVisitedTabs(prev => (prev[activeTab] ? prev : { ...prev, [activeTab]: true }));
+  }, [activeTab]);
   const [selected, setSelected] = useState("");
   const [feedback, setFeedback] = useState("");
   // Top-level hooks in GameTabs
@@ -89,7 +94,7 @@ const userPhoneNumber = localStorage.getItem("phoneNumber");
     const [analogyLocked, setAnalogyLocked] = useState(false);
     useEffect(() => {
     // Only run if the Antonym tab is the current or initial one
-    if (activeTab === 'antonym' || antonymPuzzle === null) {
+    if (activeTab === 'antonym') {
         loadLatestAntonym();
     }
 }, [activeTab]);
@@ -234,6 +239,7 @@ useEffect(() => {
 
 
 useEffect(() => {
+    if (activeTab !== 'scoreboard') return;
     let mounted = true;
     const fetchLeaderboard = async () => {
         setLoadingLeaderboard(true);
@@ -260,7 +266,7 @@ useEffect(() => {
 
     fetchLeaderboard();
     return () => { mounted = false; };
-}, []);
+}, [activeTab]);
   const [firstCard, setFirstCard] = useState(null);
   const [secondCard, setSecondCard] = useState(null);
 // GameTabs.js - Antonym Fetch Logic (REPLACE YOUR EXISTING ONE)
@@ -519,11 +525,12 @@ useEffect(() => {
         }
     }
     
+    if (!visitedTabs.nback) return;
     fetchAnalogy();
 
     return () => { mounted = false; };
 // ⚠️ Ensure 'phoneNumber' is in the dependency array if it can change over time
-}, [userPhoneNumber]);
+}, [userPhoneNumber, visitedTabs.nback]);
 useEffect(() => {
     // 🛑 CRITICAL: We only call the fetch function if the tab is active
     // and the phone number (user identity) is available.
@@ -539,18 +546,7 @@ useEffect(() => {
     // are correct (activeTab, userPhoneNumber, and all state setters it uses).
     // For simplicity, assuming dependencies are handled correctly within the function's definition scope:
 }, [userPhoneNumber, activeTab]);
-useEffect(() => {
-  const phoneNumber = localStorage.getItem("phoneNumber");
-  if (!phoneNumber) return;
-
-  axios.get(`${process.env.REACT_APP_BACKENDURL}/api/user/coin?phoneNumber=${phoneNumber}`)
-    .then(res => {
-      setCoin(res.data.coins); // ✅ assuming backend returns { coins: number }
-    })
-    .catch(err => {
-      console.error("Failed to fetch coin balance:", err);
-    });
-}, []);
+// (Duplicate coin-balance fetch removed: coins are already loaded once above)
   // ---------------- Memory Match Handlers ----------------
   // Add this block inside your main quiz component (e.g., QuizDashboard.js)
 
@@ -938,6 +934,7 @@ const submitCrosswordAnswer = async (completedWord) => {
 }
 // 🎯 NEW TECH QUIZ FETCHING LOGIC (Persistence Fix)
 useEffect(() => {
+    if (!visitedTabs.tech) return;
     let mounted = true;
     const fetchUnsolvedTechQuiz = async () => {
         const phoneNumber = localStorage.getItem("phoneNumber");
@@ -982,7 +979,7 @@ useEffect(() => {
 
     fetchUnsolvedTechQuiz();
     return () => { mounted = false; };
-}, [requestNextTechQuiz]); // Runs on load and when the user requests the next one
+}, [requestNextTechQuiz, visitedTabs.tech]); // Runs on load and when the user requests the next one
 useEffect(() => {
  if (loading || crosswordCompleted) return; // Stop timer if already solved
 
@@ -1007,6 +1004,7 @@ useEffect(() => {
 }, [loading, crosswordCompleted]); // Only depend on loading and completion state
 
 useEffect(() => {
+ if (!visitedTabs.sudoku) return;
  let mounted = true;
  async function loadLatest() {
  setLoadingSudoku(true);
@@ -1032,7 +1030,7 @@ const res = await axios.get(`${base}/api/dashboard/latest-sudoku`);
  }
  loadLatest();
  return () => { mounted = false; };
-}, []); // Dependency array is empty, runs once on mount
+}, [visitedTabs.sudoku]); // Loads when the Sudoku tab is first opened
 
 const [attempts, setAttempts] = useState(0);
 const checkSudokuSolution = async () => {

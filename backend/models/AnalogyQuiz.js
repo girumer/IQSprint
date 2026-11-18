@@ -46,4 +46,7 @@ const analogyQuizSchema = new mongoose.Schema({
   },
 });
 
+// Index for queries that sort by creation date
+analogyQuizSchema.index({ createdAt: 1 });
+
 module.exports = mongoose.model('AnalogyQuiz', analogyQuizSchema);

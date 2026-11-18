@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import './Login.css';
-import gameBack from "../assets/loginback.png";
+import gameBack from "../assets/loginback.jpg";
 import { useNavigate } from 'react-router-dom';
 function Signup() {
   const [form, setForm] = useState({ phoneNumber: '', password: '' });
