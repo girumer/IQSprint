@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./GameTabs.css";
-import gameBack from "../assets/gameback.jpg";
 import Firework from "./Firework";
-import Popup from "./Popup";
 import axios from 'axios';
+import { useToast } from "../components/Toast";
+
+const coinText = (n) => `You earned ${n} coin${n === 1 ? '' : 's'}!`;
+
 const GameTabs = () => {
+  const toast = useToast();
+  const chipNavRef = useRef(null);
   // 🆕 Synonym Quiz States
   // Add these lines near your other useState declarations // Used for loading status
 const [showNextAnalogyButton, setShowNextAnalogyButton] = useState(false);
@@ -37,6 +41,7 @@ const [synonymLocked, setSynonymLocked] = useState(false);
 const [crosswordResult, setCrosswordResult] = useState('');
 const [loading, setLoading] = useState(true);
 const [hintIndex, setHintIndex] = useState(null); 
+const [givenMask, setGivenMask] = useState([]); // true for letters the puzzle gives you
 const [loadingSequence, setLoadingSequence] = useState(false);
 const [sequenceLoading, setSequenceLoading] = useState(false);
 const [popupMessage, setPopupMessage] = useState("");
@@ -65,6 +70,8 @@ const [initialBoard, setInitialBoard] = useState(null);
   const [visitedTabs, setVisitedTabs] = useState({ crossword: true });
   useEffect(() => {
     setVisitedTabs(prev => (prev[activeTab] ? prev : { ...prev, [activeTab]: true }));
+    const active = chipNavRef.current?.querySelector('.chip.active');
+    if (active) active.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
   }, [activeTab]);
   const [selected, setSelected] = useState("");
   const [feedback, setFeedback] = useState("");
@@ -98,45 +105,7 @@ const userPhoneNumber = localStorage.getItem("phoneNumber");
         loadLatestAntonym();
     }
 }, [activeTab]);
-    // Add this useEffect at the VERY TOP of your GameTabs component, after the state declarations
-useEffect(() => {
-  // Request interceptor to add token to all requests
-  const requestInterceptor = axios.interceptors.request.use(
-    (config) => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    },
-    (error) => {
-      return Promise.reject(error);
-    }
-  );
-
-  // Response interceptor to handle auth errors
-  const responseInterceptor = axios.interceptors.response.use(
-    (response) => response,
-    (error) => {
-      if (error.response?.status === 401) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('userId');
-        localStorage.removeItem('phoneNumber');
-        localStorage.removeItem('role');
-        window.location.href = '/login';
-      }
-      return Promise.reject(error);
-    }
-  );
-// --- Handler for Tech Quiz Answer ---
-
-
-  // Cleanup
-  return () => {
-    axios.interceptors.request.eject(requestInterceptor);
-    axios.interceptors.response.eject(responseInterceptor);
-  };
-}, []);
+    // (The login token is now added to every request in src/api.js)
   useEffect(() => {
     const seq = Array.from({ length: 10 }, () => Math.floor(Math.random() * 9) + 1);
     setNbackSequence(seq);
@@ -219,6 +188,7 @@ useEffect(() => {
                 setHintIndex(hintPos);
 
                 setCrosswordLetters(initialLetters.map(l => l || ""));
+                setGivenMask(initialLetters.map(l => !!l));
                 setCrosswordTimeLeft(120);
                 setCrosswordCompleted(false); // Enable input fields
                 setShowNextButton(false);
@@ -366,7 +336,7 @@ const handleTechQuizAnswer = async (selectedIndex) => {
                 setShowFirework(true);
                 setTimeout(() => setShowFirework(false), 10000);
                 setTechQuizResult(`✅ Correct! You earned ${res.data.coinsAwarded} coin(s)!`);
-                alert(`🎉 Congratulations! You earned ${res.data.coinsAwarded} coin(s)!`); 
+                toast.coin(coinText(res.data.coinsAwarded)); 
             } else {
                 setTechQuizResult("✅ Correct! (Coin already awarded)");
             }
@@ -696,7 +666,7 @@ const handleSynonymAnswer = async (selectedIndex) => {
                 
                 const resultMsg = `✅ Correct! You earned ${coinsAwarded} coin(s)! ${explanation ? `\n\nExplanation: ${explanation}` : ''}`;
                 setSynonymResult(resultMsg);
-                alert(`🎉 Congratulations! You earned ${coinsAwarded} coin(s)!`);
+                toast.coin(coinText(coinsAwarded));
             } else {
                 setSynonymResult("✅ Correct! (Coin already awarded)");
             }
@@ -755,7 +725,7 @@ const handleAntonymAnswer = async (selectedIndex) => {
             if (res.data.coinsAwarded > 0) {
                 setCoin(prev => prev + res.data.coinsAwarded);
                 setAntonymResult(`✅ Correct! You earned ${res.data.coinsAwarded} coin(s)!`);
-                alert(`🎉 Congratulations! You earned ${res.data.coinsAwarded} coin(s)!`);
+                toast.coin(coinText(res.data.coinsAwarded));
             } else {
                 setAntonymResult("✅ Correct! (Coin already awarded)");
             }
@@ -882,6 +852,7 @@ useEffect(() => {
             setHintIndex(hintPos);
 
             setCrosswordLetters(initialLetters.map(l => l || ""));
+                setGivenMask(initialLetters.map(l => !!l));
             setCrosswordTimeLeft(120);
             setCrosswordCompleted(false);
             setShowNextButton(false);
@@ -921,7 +892,7 @@ const submitCrosswordAnswer = async (completedWord) => {
 
             if (res.data.coinsAwarded > 0) {
                 setCoin(prev => prev + res.data.coinsAwarded);
-                alert(`🎉 You earned ${res.data.coinsAwarded} coin(s)!`);
+                toast.coin(coinText(res.data.coinsAwarded));
             }
         } else {
             setCrosswordResult("❌ Incorrect word. Try again.");
@@ -1062,7 +1033,7 @@ const checkSudokuSolution = async () => {
             if (res.data.coinsAwarded > 0) {
                 // 2. Update local coin state if the backend confirms an award
                 setCoin(prev => prev + res.data.coinsAwarded);
-                alert(`🎉 You earned ${res.data.coinsAwarded} coin(s)!`);
+                toast.coin(coinText(res.data.coinsAwarded));
             }
         } else {
             setSudokuResult("❌ Incorrect solution. Keep trying!");
@@ -1117,7 +1088,7 @@ const handleSequenceCheck = async () => {
                 // 🛑 FIX 3: Use the explanation/hint from the backend
                 const resultMsg = `✅ Correct! You earned ${coinsAwarded} coin(s)! Pattern: ${explanation || 'No explanation provided.'}`;
                 setSequenceResult(resultMsg);
-                alert(`🎉 You earned ${coinsAwarded} coin(s)!`);
+                toast.coin(coinText(coinsAwarded));
             } else {
                  // Use the message from the backend (e.g., "Puzzle already solved.")
                 setSequenceResult(message || "✅ Correct! (Coin already awarded)");
@@ -1171,7 +1142,7 @@ const handleAnalogyAnswer = async (selectedIndex) => {
                 setShowFirework(true);
                 setTimeout(() => setShowFirework(false), 10000);
                 setAnalogyResult(`✅ Correct! You earned ${res.data.coinsAwarded} coin(s)!`);
-                alert(`🎉 Congratulations! You earned ${res.data.coinsAwarded} coin(s)!`); 
+                toast.coin(coinText(res.data.coinsAwarded)); 
             } else {
                 setAnalogyResult("✅ Correct! (Coin already awarded)");
             }
@@ -1316,724 +1287,561 @@ const handleSudokuChange = (e, row, col) => {
     return newBoard;
   });
 };
+  // ---------------- Presentation helpers ----------------
+  // Move focus to the nearest editable tile in the given direction (skips given letters)
+  const focusTile = (index, step = 1) => {
+    const tiles = document.querySelectorAll('.cw-tile');
+    let i = index;
+    while (i >= 0 && i < tiles.length && givenMask[i]) i += step;
+    if (tiles[i]) tiles[i].focus();
+  };
+
+  const onCrosswordInput = (e, index) => {
+    const val = e.target.value.toUpperCase().slice(-1);
+    handleLetterChange({ target: { value: val } }, index);
+    if (/^[A-Z]$/.test(val)) focusTile(index + 1);
+  };
+
+  const onCrosswordKeyDown = (e, index) => {
+    if (e.key === 'Backspace' && !crosswordLetters[index]) focusTile(index - 1, -1);
+    if (e.key === 'ArrowLeft') focusTile(index - 1, -1);
+    if (e.key === 'ArrowRight') focusTile(index + 1);
+    if (e.key === 'Enter' && !crosswordLetters.some((l) => l === '')) {
+      submitCrosswordAnswer(crosswordLetters.join('').toUpperCase());
+    }
+  };
+
+  const optionState = (isSelected, locked, resultText) => {
+    if (!isSelected) return '';
+    if (resultText && resultText.startsWith('✅')) return 'is-correct';
+    if (resultText && resultText.startsWith('❌')) return 'is-wrong';
+    return 'is-selected';
+  };
+
+  const renderOptions = ({ options, selectedIndex, locked, resultText, onPick }) => (
+    <div className="options">
+      {options.map((option, index) => (
+        <button
+          key={index}
+          className={`option ${optionState(selectedIndex === index, locked, resultText)}`}
+          onClick={() => onPick(index)}
+          disabled={locked}
+        >
+          <span className="option-letter">{OPTION_LETTERS[index]}</span>
+          <span className="option-text">{option}</span>
+        </button>
+      ))}
+    </div>
+  );
+
   const renderContent = () => {
     switch (activeTab) {
- // ... (inside the renderContent function)
-
-case "crossword":
-    // 1. CHECK FOR "ALL SOLVED" STATUS FIRST
-    // This happens when the fetch useEffect sets crosswordCompleted=true AND currentCrosswordId=null
-    if (crosswordCompleted && currentCrosswordId === null && !loading) {
-        return (
-            <div className="crossword-demo">
-                <h1>🧪 Daily Scientific Crossword</h1>
-                <div className="alert alert-success mt-3" style={{ fontSize: '20px', padding: '30px' }}>
-                    {/* Display the success message set by the fetch logic */}
-                    **{crosswordResult}** <p style={{ marginTop: '15px', color: '#666' }}>
-                        You're caught up! No new puzzles are currently available.
-                    </p>
-                </div>
-            </div>
-        );
-    }
-
-    // 2. RENDER PUZZLE GRID NORMALLY (Loading or Unsolved Puzzle)
-    return (
-        <div className="crossword-demo">
-            <h3>⏳ Time Left: {crosswordTimeLeft} seconds</h3>
-            <h1>🧪 Daily Scientific Crossword</h1>
-            <h1>Fill in the crossword below:</h1>
-
-            {loading ? (
-                <div>
-                    <p>Loading crossword puzzle...</p>
-                    <p style={{ fontSize: '14px', color: '#666' }}>
-                        Puzzle ID: {currentCrosswordId || 'Initial load'}
-                    </p>
-                </div>
-            ) : (
-                <>
-                    <div className="crossword-grid">
-                        {crosswordLetters.map((letter, index) => (
-                            <input
-                                key={index}
-                                maxLength="1"
-                                value={letter}
-                                onChange={(e) => handleLetterChange(e, index)}
-                                style={index === hintIndex ? { backgroundColor: "#abebebff" } : {}}
-                                placeholder={index === hintIndex ? "?" : ""}
-                                disabled={crosswordCompleted} // <--- Still locks input after correct solve
-                            />
-                        ))}
-                    </div>
-
-                    <div className="crossword-hints">
-                        <h1>Hint: {crosswordHint}</h1>
-                    </div>
-                    
-                    {crosswordResult && <p className="crossword-result">{crosswordResult}</p>}
-
-                    {/* Submit Button: Hidden if crosswordCompleted is true (solved or all solved) */}
-                    {!crosswordCompleted && crosswordLetters.length > 0 && (
-                        <button 
-                            onClick={() => submitCrosswordAnswer(crosswordLetters.join('').toUpperCase())}
-                            disabled={loading || crosswordLetters.some(l => l === '')} 
-                            className="submit-crossword-button"
-                            style={{
-                                padding: '12px 25px',
-                                fontSize: '18px',
-                                backgroundColor: '#FF6F00',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '5px',
-                                cursor: 'pointer',
-                                marginTop: '20px',
-                                marginBottom: '10px',
-                                fontWeight: 'bold'
-                            }}
-                        >
-                            🔍 Check Crossword Solution
-                        </button>
-                    )}
-
-
-                    {/* Next Button: Only appears after a successful submission */}
-                    {showNextButton && (
-                        <div className="next-puzzle-section">
-                            <button 
-                                onClick={loadNextCrossword}
-                                disabled={false}
-                                className="next-puzzle-button"
-                                style={{
-                                    padding: '10px 20px',
-                                    fontSize: '16px',
-                                    backgroundColor: '#4CAF50',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '5px',
-                                    cursor: 'pointer',
-                                    marginTop: '20px'
-                                }}
-                            >
-                                🎯 Next Crossword Puzzle
-                            </button>
-                            <p style={{ marginTop: '10px', color: '#666' }}>
-                                Ready for the next challenge?
-                            </p>
-                        </div>
-                    )}
-                </>
-            )}
-        </div>
-    );
-  case "faq":
-  return (
-    <div className="faq-tab">
-      <h1>❓ Frequently Asked Questions</h1>
-      <ul>
-        <li>
-          <strong>Question:</strong> How do I play the crossword?
-          <br />
-          <strong>Answer:</strong> Fill in the letters in the grid using the hint provided.
-        </li>
-        <li>
-          <strong>Question:</strong> How do I earn coins?
-          <br />
-          <strong>Answer:</strong> Solve quizzes, Sudoku, sequence, and analogy puzzles correctly to earn coins.
-        </li>
-        <li>
-          <strong>Question:</strong> Can I redo a puzzle?
-          <br />
-          <strong>Answer:</strong> Only puzzles not marked as solved in localStorage can be retried.
-        </li>
-        <li>
-          <strong>Question:</strong> How do I check my Sudoku solution?
-          <br />
-          <strong>Answer:</strong> Fill all cells and click the “Check Solution” button.
-        </li>
-        {/* Add more FAQs as needed */}
-      </ul>
-    </div>
-  );
-
-  case "instructions":
-  return (
-    <div className="instructions-tab">
-      <h1>📖 Instructions</h1>
-      <p>Welcome to the Daily Scientific Game Hub! Here’s how to play:</p>
-      <ul>
-        <li>🧪 <strong>Crossword:</strong> Fill in the daily crossword within the time limit. Use the hint if needed.</li>
-        <li>📝 <strong>Synonym & Antonym Quiz:</strong> Select the correct answer. Earn coins for correct answers!</li>
-        <li>🔢 <strong>Sudoku:</strong> Complete the 9x9 Sudoku grid. Check your solution with the button provided.</li>
-        <li>🧩 <strong>Sequence & Analogy:</strong> Solve the sequence and analogy puzzles for bonus coins.</li>
-        <li>🎯 Try to earn as many coins as possible by solving daily challenges.</li>
-      </ul>
-      <p>💡 Tip: Complete all games to maximize your rewards and climb the leaderboard!</p>
-    </div>
-  );
-
- // GameTabs.js - Inside the main return/switch block
-      case "antonym":
-        if (loadingAntonym) return <p>Loading Antonym Quiz...</p>;
-        if (antonymError) return <p className="error-message">{antonymError}</p>;
-        // If all solved, antonymPuzzle will be null, but antonymResult will hold the message.
-        if (!antonymPuzzle && antonymLocked) return <p className="success-message">{antonymResult}</p>;
-        if (!antonymPuzzle) return <p>No Antonym Quiz available today.</p>;
-
-
-        const antonymOptionLabels = ['A', 'B', 'C', 'D'];
-
-        return (
-          <div className="antonym-quiz-container">
-            <h2>📝 Daily Antonym Quiz</h2>
-            <h2 className="quiz-prompt">
-              opposite  word: 
-            </h2>
-            <h3>Word: <strong className="quiz-word-highlight">{antonymPuzzle.question}</strong></h3>
-                   
-            <div className="antonym-options-list">
-              {antonymPuzzle.options.map((option, index) => {
-                const optionLabel = `${antonymOptionLabels[index]}) ${option}`;
-                const isSelected = antonymSelected === index;
-                
-                // Highlight the selected option as correct ONLY if it was correct and the puzzle is locked
-                const isCorrectlySolved = antonymLocked && isSelected && antonymResult.startsWith('✅');
-
-                return (
-                  <button
-                    key={index}
-                    onClick={() => handleAntonymAnswer(index)}
-                    // Apply classes for visual feedback
-                    className={`option-button 
-                      ${isSelected ? 'selected' : ''} 
-                      ${isCorrectlySolved ? 'correct-answer-locked' : ''}
-                    `}
-                    disabled={antonymLocked}
-                  >
-                    {optionLabel}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="antonym-hint-box">
-              **Hint:** {antonymPuzzle.hint}
-            </div>
-
-            {antonymResult && <p className={`antonym-result ${antonymLocked ? 'final-result' : ''}`}>{antonymResult}</p>}
-          </div>
-        );
- case "sudoku":
- if (loadingSudoku) return <p>Loading Sudoku...</p>;
- if (fetchError) return <p>Error: {fetchError}</p>;
- // ✅ Change this check to use userBoard instead of sudokuPuzzle
- if (!userBoard) return <p>No puzzle found for today.</p>; 
-
- return (
- <div className="sudoku-demo">
-<h3>⏳ Time Left: 30 MINUTES</h3>
- <h1>🔢 Daily Sudoku Challenge</h1>
- <h2>Fill the 9x9 Sudoku Grid</h2>
- <div className="sudoku-grid">
- {/* Iterate over the userBoard (which is a 9x9 array) 
-            We use a double map for easier row/col calculation
-            */}
- {userBoard.map((rowArr, row) => ( 
-              rowArr.map((num, col) => {
-                const isPrefilled = initialBoard[row][col] !== 0;
-                const displayValue = num === 0 ? "" : String(num); // Show empty string for 0
-                
-                return (
-                  <input
-                    key={`${row}-${col}`} // Better key for 2D array
-                    type="text"
-                    maxLength="1"
-                    className={`sudoku-cell ${isPrefilled ? "prefilled" : ""}`}
-                    // ✅ Use displayValue and the handler
-                    value={displayValue} 
-                    onChange={(e) => handleSudokuChange(e, row, col)} 
-                    // ✅ Disable only the cells that were pre-filled
-                    disabled={isPrefilled} 
-                  />
-                )
-              })
-            ))}
- </div>
- <div className="sudoku-controls">
-        <button onClick={checkSudokuSolution} className="check-button">
-            Check Solution
-        </button>
-        {sudokuResult && (
-            <p className="sudoku-result">{sudokuResult}</p>
-        )}
-    </div>
- </div>
- );
-
-case "synonym":
-    // 1. Loading State
-    if (loadingSynonym) return <p>Loading Synonym Quiz...</p>;
-    
-    // 2. Error State
-    if (synonymError) return <p className="error">{synonymError}</p>;
-
-    // 3. No Puzzle Found / All Solved State
-    // If no puzzle is available, display the message from the backend (if any) or a default message.
-    if (!synonymPuzzle) return <p>{synonymResult || "No Synonym Quiz available."}</p>; 
-
-    const synonymOptionLetters = ['A', 'B', 'C', 'D'];
-
-    return (
-        <div className="synonym-quiz-demo">
-            <h2>📝 Daily Synonym Quiz</h2>
-            <h3>Word: <strong>{synonymPuzzle.question}</strong></h3>
-
-            <div className="synonym-options-list">
-                {synonymPuzzle.options.map((option, index) => {
-                    const optionLabel = `${synonymOptionLetters[index]}) ${option}`;
-                    const isSelected = synonymSelected === index;
-
-                    return (
-                        <button
-                            key={index}
-                            // Call the corrected handler
-                            onClick={() => handleSynonymAnswer(index)} 
-                            className={`option-button ${isSelected ? 'selected' : ''}`}
-                            disabled={synonymLocked || loadingSynonym} // 💡 Added loading check
-                        >
-                            {optionLabel}
-                        </button>
-                    );
-                })}
-            </div>
-
-            <div className="synonym-hint">
-                **Hint:** {synonymPuzzle.hint || 'No hint provided.'} 
-            </div>
-
-            {/* 💡 Added class for result to style success/failure */}
-            {synonymResult && 
-                <p className={`synonym-result ${synonymResult.includes('Correct') ? 'success' : 'failure'}`}>
-                    {synonymResult}
-                </p>
-            }
-        </div>
-    );
-
-
-
-// ... inside renderContent()
-case "tech":
-    return (
-        <div className="game-content">
-            <h1 className="game-title">⚛️ Tech Quiz Challenge</h1>
-           
-
-            {loadingTech ? (
-                <div className="loading-state">Loading latest quiz...</div>
-            ) : techQuiz ? (
-                <div className="quiz-container">
-                    <h1 >{techQuiz.question}</h1>
-                    <div className="quiz-options">
-                        {techQuiz.options.map((option, index) => (
-                            <button
-                                key={index}
-                                className={`quiz-option-button 
-                                    ${techSelectedAnswerIndex === index ? 'selected' : ''} 
-                                    ${techQuizLocked && techSelectedAnswerIndex === index && techQuizResult.startsWith('✅') ? 'correct' : ''}
-                                `}
-                                onClick={() => handleTechQuizAnswer(index)}
-                                disabled={techQuizLocked}
-                            >
-                                {option}
-                            </button>
-                        ))}
-                    </div>
-                    <p className={`quiz-result ${techQuizResult.startsWith('❌') ? 'error' : ''}`}>
-                        {techQuizResult}
-                    </p>
-                    {techQuizLocked && (
-                        <button 
-                            className="btn btn-primary mt-3" 
-                            onClick={loadNextTechQuiz}
-                        >
-                            Next Tech Quiz ➡️
-                        </button>
-                    )}
-                </div>
-            ) : (
-                <div className="alert alert-success mt-3" style={{ fontSize: '20px', padding: '30px' }}>
-                    {techQuizResult || techError || "No tech quiz found."}
-                    {techQuizLocked && (
-                        <button 
-                            className="btn btn-primary mt-3" 
-                            onClick={loadNextTechQuiz}
-                        >
-                            Check for New Quizzes 🔄
-                        </button>
-                    )}
-                </div>
-            )}
-        </div>
-    );
- 
-  case "memory":
-  if (loadingSequence) {
-    return <p>Loading Number Sequence...</p>;
-  }
-  if (sequenceError) {
-    return <p>Error: {sequenceError}</p>;
-  }
-  if (!sequencePuzzle) {
-    return (
-      <p className="all-solved-message">
-        {sequenceResult || 'No Number Sequence available today.'}
-      </p>
-    );
-  }
-
-  const sequenceDisplay = Array.isArray(sequencePuzzle?.sequence)
-    ? sequencePuzzle.sequence.join(', ')
-    : '';
-  const isLocked = sequenceLocked;
-  const isButtonDisabled = isLocked || sequenceAnswer.trim() === '';
-
-  return (
-    <div className="number-sequence-demo">
-      <h1>🔢 Daily Mathimatical Puzzle</h1>
-   
-
-      <div className="sequence-display">
-        <span className="sequence-numbers">
-          <h1>{sequenceDisplay}</h1>
-        </span>
-        <span className="sequence-blank">
-        
-          <input
-            type="number"
-            value={sequenceAnswer}
-            onChange={(e) => setSequenceAnswer(e.target.value)}
-            disabled={isLocked}
-            placeholder="?"
-            className="answer-input"
-          />
-        </span>
-      </div>
-
-      <div className="sequence-hint">
-        <strong>Hint:</strong> {sequencePuzzle.hint}
-      </div>
-
-      <div className="sequence-controls">
-        <button
-          onClick={handleSequenceCheck}
-          className="check-button"
-          disabled={isButtonDisabled}
-        >
-          {loadingSequence ? 'Checking...' : 'Check Answer'}
-        </button>
-        {sequenceResult && (
-          <p className="sequence-result">{sequenceResult}</p>
-        )}
-      </div>
-    </div>
-  );
-
-
-case "nback":
-    if (loadingAnalogy) return <p>Loading Analogy Quiz...</p>;
-    if (analogyError) return <p>Error: {analogyError}</p>;
-    // Check if all puzzles are solved, assuming loadLatestAnalogy sets analogyLocked=true
-    // and analogyPuzzle=null if no new quiz is available.
-    if (!analogyPuzzle && analogyLocked) { 
-        return (
-            <div className="analogy-quiz-demo">
-                <h2>❓ Daily Analogy Puzzle</h2>
-                <div className="alert alert-success mt-3" style={{ fontSize: '20px', padding: '30px' }}>
-                    **✅ All daily Analogy puzzles solved!**
-                    <p style={{ marginTop: '10px', color: '#666' }}>
-                        You're caught up! Check back tomorrow for a new challenge.
-                    </p>
-                </div>
-            </div>
-        );
-    }
-    if (!analogyPuzzle) return <p>No Analogy Quiz available today.</p>;
-
-    const { question, options, hint } = analogyPuzzle;
-    const analogyIsLocked = analogyLocked || loadingAnalogy;
-    const optionLetters = ['A', 'B', 'C', 'D']; 
-    
-    return (
-        <div className="analogy-quiz-demo">
-            <h1>❓ Daily Analogy Puzzle</h1>
-            
-            <div className="analogy-question-text">
-              <h2>{question}</h2>
-            </div>
-
-            <div className="analogy-options-list">
-                {options.map((option, index) => {
-                    const optionLabel = `${option}`;
-                    const isSelected = analogySelectedAnswerIndex === index;
-
-                    return (
-                        <button
-                            key={index}
-                            onClick={() => handleAnalogyAnswer(index)}
-                            className={`option-button ${isSelected ? 'selected' : ''}`}
-                            disabled={analogyIsLocked}
-                            
-                        >
-                            {optionLabel}
-                        </button>
-                    );
-                })}
-            </div>
-
-            <div className="analogy-hint">
-                **Hint:** {hint}
-            </div>
-
-            <div className="analogy-controls">
-                {analogyResult && (
-                    <p className="analogy-result">{analogyResult}</p>
-                )}
-                
-                {/* 🎯 Next Puzzle Button - Rendered only after a correct solve */}
-                {/* Assuming 'showNextAnalogyButton' state is available and set by handleAnalogyAnswer */}
-                {showNextAnalogyButton && (
-                    <div className="next-puzzle-section">
-                        <button 
-                            onClick={loadNextAnalogy} // <-- Assuming loadNextAnalogy is defined
-                            className="next-puzzle-button"
-                            style={{
-                                padding: '10px 20px',
-                                fontSize: '16px',
-                                backgroundColor: '#4CAF50',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '5px',
-                                cursor: 'pointer',
-                                marginTop: '20px'
-                            }}
-                        >
-                            🎯 Next Analogy Puzzle
-                        </button>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-// ...
-// ...
-// ...
-
-  // ... inside renderContent function's switch statement ...
-case "scoreboard":
-    if (loadingLeaderboard) return <p>Loading Leaderboard...</p>;
-    if (leaderboardError) return <p>Error: {leaderboardError}</p>;
-    
-    // Check if there are any players at all before proceeding
-    if (leaderboard.length === 0) return <p>No players on the leaderboard yet. Play a game to get started!</p>;
-
-    // Helper function to mask the phone number for privacy
-    const maskPhoneNumber = (phoneNumber) => {
-        if (!phoneNumber || phoneNumber.length < 4) {
-            return 'N/A';
+      case 'crossword': {
+        if (crosswordCompleted && currentCrosswordId === null && !loading) {
+          return (
+            <GameCard icon="🧩" title="Daily crossword">
+              <StateMessage
+                kind="done"
+                title="You’re all caught up"
+                text={crosswordResult || 'You’ve solved every crossword. New ones are added regularly.'}
+              />
+            </GameCard>
+          );
         }
-        // Show a few asterisks and the last 4 digits
-        return '***' + phoneNumber.slice(-4);
-    };
-
-    // 💡 CRITICAL CHANGE: Slice the array to get only the top 3 players
-    const topThreePlayers = leaderboard.slice(0, 3);
-
-    return (
-        <div className="scoreboard-container">
-            <h2>🏆 Top 3  IQ Sprint Players</h2>
-            
-            <ul className="scoreboard-list">
-                {topThreePlayers.map((player, index) => { // Map over the reduced array
-                    
-                    // Assuming the key for the phone number is 'phoneNumber' based on the last fix attempt.
-                    // If your actual key is different (e.g., 'userPhoneNumber'), change this line:
-                    const playerPhoneNumber = player.phoneNumber; 
-                    
-                    const maskedNumber = maskPhoneNumber(playerPhoneNumber);
-                    const isCurrentUser = playerPhoneNumber === userPhoneNumber;
-
-                    return (
-                        <li
-                            key={index}
-                            // Apply styling based on rank (1, 2, or 3)
-                            className={`score-item ${index === 0 ? "rank-1" : index === 1 ? "rank-2" : index === 2 ? "rank-3" : ""} ${isCurrentUser ? 'current-user-rank' : ''}`}
-                        >
-                            <span className="rank">
-                                {/* Conditional Medal Icons */}
-                                {index === 0 && '🥇 '}
-                                {index === 1 && '🥈 '}
-                                {index === 2 && '🥉 '}
-                                {/* Display rank number after medals */}
-                                <span className="rank-number">{index + 1}</span>
-                            </span>
-                            
-                            {/* Display the masked phone number or 'You' */}
-                            <span className="player-name">
-                                {isCurrentUser ? `**You** (${maskedNumber})` : maskedNumber}
-                            </span>
-                            
-                            {/* Display coins */}
-                            <span className="player-score">**{player.coins}** Coins</span>
-                        </li>
-                    )
-                })}
-            </ul>
-
-            ---
-
-            <div className="current-user-score">
-                <h3>✨ Your Coin Balance</h3>
-                <div className="user-score-box">
-                    <span className="player-name">Phone: **{userPhoneNumber}**</span>
-                    <span className="player-score">Balance: **{coin} Coins**</span>
+        const timerLow = crosswordTimeLeft <= 20;
+        return (
+          <GameCard
+            icon="🧩"
+            title="Daily crossword"
+            subtitle="Fill in the missing letters to spell the word."
+            badge={
+              !loading && !crosswordCompleted ? (
+                <span className={`timer ${timerLow ? 'timer-low' : ''}`}>
+                  ⏱ {Math.max(crosswordTimeLeft, 0)}s
+                </span>
+              ) : null
+            }
+          >
+            {loading ? (
+              <StateMessage kind="loading" text="Loading your crossword…" />
+            ) : (
+              <>
+                <div className="hint-box">
+                  <span className="hint-label">Clue</span>
+                  {crosswordHint}
                 </div>
+
+                <div className="cw-row" style={{ '--count': crosswordLetters.length || 1 }}>
+                  {crosswordLetters.map((letter, index) => (
+                    <input
+                      key={index}
+                      className={`cw-tile ${givenMask[index] ? 'cw-given' : ''} ${letter ? 'cw-filled' : ''}`}
+                      maxLength={2}
+                      value={letter}
+                      onChange={(e) => onCrosswordInput(e, index)}
+                      onKeyDown={(e) => onCrosswordKeyDown(e, index)}
+                      onFocus={(e) => e.target.select()}
+                      disabled={crosswordCompleted || givenMask[index]}
+                      autoCapitalize="characters"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      aria-label={`Letter ${index + 1}`}
+                    />
+                  ))}
+                </div>
+
+                <ResultBanner text={crosswordResult} />
+
+                <div className="actions">
+                  {!crosswordCompleted && crosswordLetters.length > 0 && (
+                    <button
+                      className="btn btn-primary btn-block"
+                      onClick={() => submitCrosswordAnswer(crosswordLetters.join('').toUpperCase())}
+                      disabled={loading || crosswordLetters.some((l) => l === '')}
+                    >
+                      Check word
+                    </button>
+                  )}
+                  {showNextButton && (
+                    <button className="btn btn-primary btn-block" onClick={loadNextCrossword}>
+                      Next crossword
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </GameCard>
+        );
+      }
+
+      case 'sudoku': {
+        if (loadingSudoku) return <GameCard icon="🔢" title="Daily Sudoku"><StateMessage kind="loading" text="Loading today’s Sudoku…" /></GameCard>;
+        if (fetchError) return <GameCard icon="🔢" title="Daily Sudoku"><StateMessage kind="error" title="Sudoku didn’t load" text={fetchError} /></GameCard>;
+        if (!userBoard) return <GameCard icon="🔢" title="Daily Sudoku"><StateMessage kind="empty" title="No Sudoku today" text="Check back later for a new grid." /></GameCard>;
+        return (
+          <GameCard icon="🔢" title="Daily Sudoku" subtitle="Each row, column and 3×3 box needs the numbers 1 to 9.">
+            <div className="sudoku">
+              {userBoard.map((rowArr, row) =>
+                rowArr.map((num, col) => {
+                  const isPrefilled = initialBoard[row][col] !== 0;
+                  const edges = `${col % 3 === 2 && col !== 8 ? ' edge-r' : ''}${row % 3 === 2 && row !== 8 ? ' edge-b' : ''}`;
+                  return (
+                    <input
+                      key={`${row}-${col}`}
+                      className={`sudoku-cell${isPrefilled ? ' given' : ''}${edges}`}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={num === 0 ? '' : String(num)}
+                      onChange={(e) => handleSudokuChange(e, row, col)}
+                      disabled={isPrefilled}
+                      aria-label={`Row ${row + 1}, column ${col + 1}`}
+                    />
+                  );
+                })
+              )}
             </div>
-            <div className="tabs-dropdown-wrapper">
-  <div className="tabs-dropdown">
-    <select
-      value={activeTab}
-      onChange={(e) => setActiveTab(e.target.value)}
-      aria-label="Select Game Tab"
-    >
-      <option value="crossword">Daily Crossword</option>
-      <option value="sudoku">Daily Sudoku</option>
-      <option value="tech">Daily Tech Quiz</option>
-      <option value="memory">Analytical</option>
-      <option value="nback">Analogy</option>
-      <option value="scoreboard">My Scoreboard</option>
-    </select>
-  </div>
-</div>
-        </div>
-    );
-// ... rest of renderContent function ...
+            <ResultBanner text={sudokuResult} />
+            <div className="actions">
+              <button onClick={checkSudokuSolution} className="btn btn-primary btn-block">
+                Check solution
+              </button>
+            </div>
+          </GameCard>
+        );
+      }
+
+      case 'tech': {
+        if (loadingTech) return <GameCard icon="💡" title="Tech quiz"><StateMessage kind="loading" text="Loading the next question…" /></GameCard>;
+        if (!techQuiz) {
+          return (
+            <GameCard icon="💡" title="Tech quiz">
+              <StateMessage
+                kind={techError ? 'error' : 'done'}
+                title={techError ? 'The quiz didn’t load' : 'You’re all caught up'}
+                text={techQuizResult || techError || 'No new tech questions right now.'}
+                action={<button className="btn btn-ghost" onClick={loadNextTechQuiz}>Check for new questions</button>}
+              />
+            </GameCard>
+          );
+        }
+        return (
+          <GameCard icon="💡" title="Tech quiz" subtitle="Pick the correct answer.">
+            <p className="question">{techQuiz.question}</p>
+            {renderOptions({
+              options: techQuiz.options,
+              selectedIndex: techSelectedAnswerIndex,
+              locked: techQuizLocked,
+              resultText: techQuizResult,
+              onPick: handleTechQuizAnswer,
+            })}
+            <ResultBanner text={techQuizResult} />
+            {techQuizLocked && (
+              <div className="actions">
+                <button className="btn btn-primary btn-block" onClick={loadNextTechQuiz}>
+                  Next question
+                </button>
+              </div>
+            )}
+          </GameCard>
+        );
+      }
+
+      case 'memory': {
+        if (loadingSequence) return <GameCard icon="🧠" title="Number sequence"><StateMessage kind="loading" text="Loading the sequence…" /></GameCard>;
+        if (sequenceError) return <GameCard icon="🧠" title="Number sequence"><StateMessage kind="error" title="The sequence didn’t load" text={sequenceError} /></GameCard>;
+        if (!sequencePuzzle) {
+          return (
+            <GameCard icon="🧠" title="Number sequence">
+              <StateMessage kind="done" title="You’re all caught up" text={sequenceResult || 'No new sequences right now.'} />
+            </GameCard>
+          );
+        }
+        const numbers = Array.isArray(sequencePuzzle.sequence) ? sequencePuzzle.sequence : [];
+        return (
+          <GameCard icon="🧠" title="Number sequence" subtitle="Find the number that comes next.">
+            <div className="sequence">
+              {numbers.map((n, i) => (
+                <span key={i} className="seq-num">{n}</span>
+              ))}
+              <input
+                type="number"
+                inputMode="numeric"
+                className="seq-num seq-answer"
+                value={sequenceAnswer}
+                onChange={(e) => setSequenceAnswer(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !sequenceLocked && sequenceAnswer.trim() !== '') handleSequenceCheck();
+                }}
+                disabled={sequenceLocked}
+                placeholder="?"
+                aria-label="Your answer"
+              />
+            </div>
+            {sequencePuzzle.hint && (
+              <div className="hint-box">
+                <span className="hint-label">Hint</span>
+                {sequencePuzzle.hint}
+              </div>
+            )}
+            <ResultBanner text={sequenceResult} />
+            <div className="actions">
+              <button
+                onClick={handleSequenceCheck}
+                className="btn btn-primary btn-block"
+                disabled={sequenceLocked || sequenceAnswer.trim() === ''}
+              >
+                Check answer
+              </button>
+            </div>
+          </GameCard>
+        );
+      }
+
+      case 'synonym': {
+        if (loadingSynonym) return <GameCard icon="🔤" title="Synonyms"><StateMessage kind="loading" text="Loading the next word…" /></GameCard>;
+        if (synonymError) return <GameCard icon="🔤" title="Synonyms"><StateMessage kind="error" title="The quiz didn’t load" text={synonymError} /></GameCard>;
+        if (!synonymPuzzle) {
+          return (
+            <GameCard icon="🔤" title="Synonyms">
+              <StateMessage kind="done" title="You’re all caught up" text={synonymResult || 'No new synonym questions right now.'} />
+            </GameCard>
+          );
+        }
+        return (
+          <GameCard icon="🔤" title="Synonyms" subtitle="Pick the word that means the same.">
+            <p className="question question-word">{synonymPuzzle.question}</p>
+            {renderOptions({
+              options: synonymPuzzle.options,
+              selectedIndex: synonymSelected,
+              locked: synonymLocked || loadingSynonym,
+              resultText: synonymResult,
+              onPick: handleSynonymAnswer,
+            })}
+            {synonymPuzzle.hint && (
+              <div className="hint-box">
+                <span className="hint-label">Hint</span>
+                {synonymPuzzle.hint}
+              </div>
+            )}
+            <ResultBanner text={synonymResult} />
+          </GameCard>
+        );
+      }
+
+      case 'antonym': {
+        if (loadingAntonym) return <GameCard icon="🔡" title="Antonyms"><StateMessage kind="loading" text="Loading the next word…" /></GameCard>;
+        if (antonymError) return <GameCard icon="🔡" title="Antonyms"><StateMessage kind="error" title="The quiz didn’t load" text={antonymError} /></GameCard>;
+        if (!antonymPuzzle) {
+          return (
+            <GameCard icon="🔡" title="Antonyms">
+              <StateMessage kind="done" title="You’re all caught up" text={antonymResult || 'No new antonym questions right now.'} />
+            </GameCard>
+          );
+        }
+        return (
+          <GameCard icon="🔡" title="Antonyms" subtitle="Pick the word that means the opposite.">
+            <p className="question question-word">{antonymPuzzle.question}</p>
+            {renderOptions({
+              options: antonymPuzzle.options,
+              selectedIndex: antonymSelected,
+              locked: antonymLocked,
+              resultText: antonymResult,
+              onPick: handleAntonymAnswer,
+            })}
+            {antonymPuzzle.hint && (
+              <div className="hint-box">
+                <span className="hint-label">Hint</span>
+                {antonymPuzzle.hint}
+              </div>
+            )}
+            <ResultBanner text={antonymResult} />
+          </GameCard>
+        );
+      }
+
+      case 'nback': {
+        if (loadingAnalogy) return <GameCard icon="🔄" title="Analogies"><StateMessage kind="loading" text="Loading the next analogy…" /></GameCard>;
+        if (analogyError) return <GameCard icon="🔄" title="Analogies"><StateMessage kind="error" title="The analogy didn’t load" text={analogyError} /></GameCard>;
+        if (!analogyPuzzle) {
+          return (
+            <GameCard icon="🔄" title="Analogies">
+              <StateMessage
+                kind="done"
+                title="You’re all caught up"
+                text={analogyLocked ? 'You’ve solved every analogy. Check back tomorrow.' : 'No analogy available today.'}
+              />
+            </GameCard>
+          );
+        }
+        return (
+          <GameCard icon="🔄" title="Analogies" subtitle="Complete the comparison.">
+            <p className="question">{analogyPuzzle.question}</p>
+            {renderOptions({
+              options: analogyPuzzle.options,
+              selectedIndex: analogySelectedAnswerIndex,
+              locked: analogyLocked || loadingAnalogy,
+              resultText: analogyResult,
+              onPick: handleAnalogyAnswer,
+            })}
+            {analogyPuzzle.hint && (
+              <div className="hint-box">
+                <span className="hint-label">Hint</span>
+                {analogyPuzzle.hint}
+              </div>
+            )}
+            <ResultBanner text={analogyResult} />
+            {showNextAnalogyButton && (
+              <div className="actions">
+                <button className="btn btn-primary btn-block" onClick={loadNextAnalogy}>
+                  Next analogy
+                </button>
+              </div>
+            )}
+          </GameCard>
+        );
+      }
+
+      case 'scoreboard': {
+        const mask = (p) => (p && p.length >= 4 ? `••• ${p.slice(-4)}` : '—');
+        const myRank = leaderboard.findIndex((p) => p.phoneNumber === userPhoneNumber);
+        return (
+          <GameCard icon="🏆" title="Leaderboard" subtitle="The players with the most coins.">
+            <div className="my-score">
+              <div>
+                <div className="my-score-label">Your coins</div>
+                <div className="my-score-value">🪙 {coin}</div>
+              </div>
+              {myRank >= 0 && (
+                <div className="my-rank">
+                  <div className="my-score-label">Your rank</div>
+                  <div className="my-score-value">#{myRank + 1}</div>
+                </div>
+              )}
+            </div>
+
+            {loadingLeaderboard ? (
+              <StateMessage kind="loading" text="Loading the leaderboard…" />
+            ) : leaderboardError ? (
+              <StateMessage kind="error" title="The leaderboard didn’t load" text={leaderboardError} />
+            ) : leaderboard.length === 0 ? (
+              <StateMessage kind="empty" title="No scores yet" text="Solve a puzzle to be the first on the board." />
+            ) : (
+              <ol className="board">
+                {leaderboard.slice(0, 10).map((player, index) => {
+                  const isMe = player.phoneNumber === userPhoneNumber;
+                  return (
+                    <li key={player._id || index} className={`board-row rank-${index + 1} ${isMe ? 'is-me' : ''}`}>
+                      <span className="board-rank">{MEDALS[index] || index + 1}</span>
+                      <span className="board-name">{isMe ? `You (${mask(player.phoneNumber)})` : mask(player.phoneNumber)}</span>
+                      <span className="board-coins">🪙 {player.coins}</span>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </GameCard>
+        );
+      }
+
+      case 'instructions':
+        return (
+          <GameCard icon="📖" title="How to play">
+            <ul className="info-list">
+              <li><strong>Crossword:</strong> read the clue and type the missing letters before the timer runs out. Gold tiles are letters given to you.</li>
+              <li><strong>Sudoku:</strong> fill every empty cell so each row, column and 3×3 box has the numbers 1 to 9, then tap Check solution.</li>
+              <li><strong>Tech quiz, synonyms, antonyms and analogies:</strong> tap the answer you think is right. You get one try per question.</li>
+              <li><strong>Number sequence:</strong> work out the pattern and type the next number.</li>
+              <li><strong>Coins:</strong> every correct answer earns coins. Collect the most to climb the leaderboard.</li>
+            </ul>
+          </GameCard>
+        );
+
+      case 'faq':
+        return (
+          <GameCard icon="❓" title="Questions and answers">
+            <div className="faq">
+              {FAQS.map((item) => (
+                <details key={item.q} className="faq-item">
+                  <summary>{item.q}</summary>
+                  <p>{item.a}</p>
+                </details>
+              ))}
+            </div>
+          </GameCard>
+        );
+
       default:
         return null;
     }
   };
 
+  const goTo = (tabId) => {
+    setActiveTab(tabId);
+    closeSidebar();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const navButtons = (items, className) =>
+    items.map((tab) => (
+      <button
+        key={tab.id}
+        className={`${className} ${activeTab === tab.id ? 'active' : ''}`}
+        onClick={() => goTo(tab.id)}
+        aria-current={activeTab === tab.id ? 'page' : undefined}
+      >
+        <span className="nav-icon" aria-hidden="true">{tab.icon}</span>
+        <span>{tab.label}</span>
+      </button>
+    ));
+
   return (
-    <div
-      className="tabs-container"
-      style={{
-        backgroundImage: `url(${gameBack})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-      }}
-    >
-
-      <button className="mobile-menu-button" onClick={toggleSidebar}>
-      ☰
-    </button>
-
-    {/* Sidebar Overlay */}
-    <div 
-      className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} 
-      onClick={closeSidebar}
-    />
-
-    {/* Mobile Sidebar */}
-    <div className={`mobile-sidebar ${sidebarOpen ? 'open' : ''}`}>
-      <div className="sidebar-header">
-        <div className="sidebar-title">Mind Hub Games</div>
-        <button className="close-sidebar" onClick={closeSidebar}>
-          ×
+    <div className="game-shell">
+      <header className="topbar">
+        <button className="icon-btn menu-btn" onClick={toggleSidebar} aria-label="Open menu">
+          <span className="burger" />
         </button>
-      </div>
-   <div className="sidebar-tabs">
+        <div className="wordmark" aria-label="IQsprint">
+          <span className="wordmark-tile">IQ</span>
+          <span className="wordmark-text">sprint</span>
+        </div>
+        <button className="coin-chip" onClick={() => goTo('scoreboard')} aria-label={`${coin} coins. Open leaderboard`}>
+          🪙 <span>{coin}</span>
+        </button>
+      </header>
 
-  <button className={`sidebar-tab ${activeTab === "crossword" ? "active" : ""}`} onClick={() => handleTabClick("crossword")}>
-    🧩 Daily Crossword
-  </button>
-  <button className={`sidebar-tab ${activeTab === "sudoku" ? "active" : ""}`} onClick={() => handleTabClick("sudoku")}>
-    🔢 Daily Sudoku
-  </button>
-  <button className={`sidebar-tab ${activeTab === "tech" ? "active" : ""}`} onClick={() => handleTabClick("tech")}>
-    💡 Tech Quiz
-  </button>
-  <button className={`sidebar-tab ${activeTab === "memory" ? "active" : ""}`} onClick={() => handleTabClick("memory")}>
-    🧠 Analytical
-  </button>
-   <button className={`sidebar-tab ${activeTab === "synonym" ? "active" : ""}`} onClick={() => setActiveTab("synonym")}>
-    🔤 Synonym Puzzle
-  </button>
-  <button className={`sidebar-tab ${activeTab === "antonym" ? "active" : ""}`}  onClick={() => setActiveTab("antonym")}>
-    🔡 Antonym Puzzle
-  </button>
-  <button className={`sidebar-tab ${activeTab === "nback" ? "active" : ""}`} onClick={() => handleTabClick("nback")}>
-  🔄 Analogy
-</button>
- <button className={`sidebar-tab ${activeTab === "instructions" ? "active" : ""}`}  onClick={() => setActiveTab("instructions")}>
-    📖 Instructions
-  </button>
-  <button className={`sidebar-tab ${activeTab === "faq" ? "active" : ""}`} onClick={() => setActiveTab("faq")}>
-    ❓ F&Q
-  </button>
-  <button className={`sidebar-tab ${activeTab === "scoreboard" ? "active" : ""}`} onClick={() => handleTabClick("scoreboard")}>
-    🏆 Scoreboard
-  </button>
-   <button className={`sidebar-tab ${activeTab === "scoreboard" ? "active" : ""}`} onClick={handleLogout}>
-    🔓 Logout
-  </button>
-</div>
-    </div>
+      <nav className="chip-nav" aria-label="Games" ref={chipNavRef}>
+        {navButtons(GAME_TABS, 'chip')}
+      </nav>
 
- 
+      <div className={`drawer-overlay ${sidebarOpen ? 'open' : ''}`} onClick={closeSidebar} />
 
+      <aside className={`side-nav ${sidebarOpen ? 'open' : ''}`} aria-label="Menu">
+        <div className="side-head">
+          <div className="wordmark">
+            <span className="wordmark-tile">IQ</span>
+            <span className="wordmark-text">sprint</span>
+          </div>
+          <button className="icon-btn close-btn" onClick={closeSidebar} aria-label="Close menu">×</button>
+        </div>
+        <div className="side-group-title">Games</div>
+        {navButtons(GAME_TABS, 'side-link')}
+        <div className="side-group-title">More</div>
+        {navButtons(HELP_TABS, 'side-link')}
+        <button className="side-link logout" onClick={handleLogout}>
+          <span className="nav-icon" aria-hidden="true">⎋</span>
+          <span>Log out</span>
+        </button>
+      </aside>
 
-      <div className="tabs">
-  <button className={activeTab === "crossword" ? "active" : ""} onClick={() => setActiveTab("crossword")}>
-    🧩 Daily Crossword
-  </button>
-  <button className={activeTab === "sudoku" ? "active" : ""} onClick={() => setActiveTab("sudoku")}>
-    🔢 Daily Sudoku
-  </button>
-  <button className={activeTab === "tech" ? "active" : ""} onClick={() => setActiveTab("tech")}>
-    💡 Tech Quiz
-  </button>
-  <button className={activeTab === "memory" ? "active" : ""} onClick={() => setActiveTab("memory")}>
-    🧠 Analytical
-  </button>
-   <button className={activeTab === "synonym" ? "active" : ""} onClick={() => setActiveTab("synonym")}>
-    🔤 Synonym Puzzle
-  </button>
+      <main className="game-main">{renderContent()}</main>
 
-  <button className={activeTab === "antonym" ? "active" : ""} onClick={() => setActiveTab("antonym")}>
-    🔡 Antonym Puzzle
-  </button>
-  <button className={activeTab === "nback" ? "active" : ""} onClick={() => setActiveTab("nback")}>
-    🔄 Analogy
-  </button>
-  <button className={activeTab === "instructions" ? "active" : ""} onClick={() => setActiveTab("instructions")}>
-    📖 Instructions
-  </button>
-  <button className={activeTab === "faq" ? "active" : ""} onClick={() => setActiveTab("faq")}>
-    ❓ F&Q
-  </button>
-  <button className={activeTab === "scoreboard" ? "active" : ""} onClick={() => setActiveTab("scoreboard")}>
-    🏆 Scoreboard
-  </button>
-   <button className="logout-button" onClick={handleLogout}>
-    🔓 Logout
-  </button>
-</div>
-      <div className="tab-content">{renderContent()}</div>
       {showFirework && <Firework />}
-
     </div>
   );
 };
+
+// ---------------- Small presentational components ----------------
+const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
+const MEDALS = ['🥇', '🥈', '🥉'];
+
+const GAME_TABS = [
+  { id: 'crossword', label: 'Crossword', icon: '🧩' },
+  { id: 'sudoku', label: 'Sudoku', icon: '🔢' },
+  { id: 'tech', label: 'Tech quiz', icon: '💡' },
+  { id: 'memory', label: 'Sequence', icon: '🧠' },
+  { id: 'synonym', label: 'Synonyms', icon: '🔤' },
+  { id: 'antonym', label: 'Antonyms', icon: '🔡' },
+  { id: 'nback', label: 'Analogies', icon: '🔄' },
+  { id: 'scoreboard', label: 'Leaderboard', icon: '🏆' },
+];
+
+const HELP_TABS = [
+  { id: 'instructions', label: 'How to play', icon: '📖' },
+  { id: 'faq', label: 'Questions', icon: '❓' },
+];
+
+const FAQS = [
+  { q: 'How do I earn coins?', a: 'Answer any puzzle correctly. Each puzzle pays its coins once.' },
+  { q: 'Can I try a question again?', a: 'Quiz questions lock after your answer. For the crossword, Sudoku and number sequence you can keep trying until you get it right.' },
+  { q: 'What does IQsprint cost?', a: 'Your first three days are free. After that it costs 3 birr per day.' },
+  { q: 'When are new puzzles added?', a: 'New puzzles are added regularly. When you’ve solved everything in a game, check back later.' },
+  { q: 'Why was I logged out?', a: 'For your security, you’re logged out after 7 days. Log in again with your phone number and password.' },
+];
+
+function GameCard({ icon, title, subtitle, badge, children }) {
+  return (
+    <section className="game-card">
+      <div className="game-head">
+        <span className="game-icon" aria-hidden="true">{icon}</span>
+        <div className="game-titles">
+          <h1>{title}</h1>
+          {subtitle && <p>{subtitle}</p>}
+        </div>
+        {badge}
+      </div>
+      <div className="game-body">{children}</div>
+    </section>
+  );
+}
+
+function StateMessage({ kind, title, text, action }) {
+  const icons = { done: '🎉', error: '⚠️', empty: '🗂️' };
+  return (
+    <div className={`state state-${kind}`}>
+      {kind === 'loading' ? <div className="spinner" /> : <div className="state-icon">{icons[kind]}</div>}
+      {title && <h2>{title}</h2>}
+      {text && <p>{text}</p>}
+      {action}
+    </div>
+  );
+}
+
+function ResultBanner({ text }) {
+  if (!text) return null;
+  const tone = text.startsWith('✅') ? 'good' : text.startsWith('❌') ? 'bad' : text.startsWith('⚠️') ? 'warn' : 'info';
+  return <p className={`result result-${tone}`}>{text}</p>;
+}
 
 export default GameTabs;

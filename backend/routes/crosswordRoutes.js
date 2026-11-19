@@ -8,12 +8,14 @@ const SynonymQuiz=require('../models/SynonymQuiz');
 const AntonymQuiz = require('../models/AntonymQuiz');// Correct spelling
 const NumberSequence = require('../models/NumberSequence');
 const AnalogyQuiz = require('../models/AnalogyQuiz'); 
+const authMiddleware = require('../middleware/authMiddleware');
+const { requireAdmin } = require('../middleware/authMiddleware');
 // Temporary in-memory storage (replace with DB later)
 
 
 // POST /api/crossword/create
  // adjust path if needed
-router.post('/dashboard/upload-sudoku', async (req, res) => {
+router.post('/dashboard/upload-sudoku', authMiddleware, requireAdmin, async (req, res) => {
   const { puzzle, solution } = req.body;
 
   if (!puzzle || !solution) {
@@ -29,7 +31,7 @@ router.post('/dashboard/upload-sudoku', async (req, res) => {
     res.status(500).json({ error: 'Failed to upload Sudoku' });
   }
 });
-router.get('/dashboard/latest-sudoku', async (req, res) => {
+router.get('/dashboard/latest-sudoku', authMiddleware, async (req, res) => {
   try {
     const latest = await Sudoku.findOne().sort({ createdAt: -1 }).lean();
     if (!latest) return res.status(404).json({ error: 'No Sudoku found' });
@@ -41,8 +43,9 @@ router.get('/dashboard/latest-sudoku', async (req, res) => {
 });
 // --- BACKEND CODE (Example Node.js/Express) ---
 // POST endpoint to check the user's Sudoku solution
-router.post('/sudoku/check-solution', async (req, res) => {
-    const { phoneNumber, userBoard } = req.body;
+router.post('/sudoku/check-solution', authMiddleware, async (req, res) => {
+    const { userBoard } = req.body;
+    const phoneNumber = req.user.phoneNumber; // from the login token
     
     // --- Basic Input Validation ---
     if (!phoneNumber || !userBoard || !Array.isArray(userBoard) || userBoard.length !== 9) {
@@ -103,7 +106,7 @@ router.post('/sudoku/check-solution', async (req, res) => {
 });
 
  // Ensure you export the router
-router.post('/crossword/create', async (req, res) => {
+router.post('/crossword/create', authMiddleware, requireAdmin, async (req, res) => {
   const { correctWord, initialLetters, hint } = req.body;
 
   if (!correctWord || !initialLetters || !hint) {
@@ -131,8 +134,8 @@ router.post('/crossword/create', async (req, res) => {
 
 // GET /api/crossword
 // GET /api/crossword?phoneNumber=...
-router.get('/crossword', async (req, res) => {
-    const phoneNumber = req.query.phoneNumber;
+router.get('/crossword', authMiddleware, async (req, res) => {
+    const phoneNumber = req.user.phoneNumber; // from the login token
 
     if (!phoneNumber) {
         return res.status(400).json({ error: "Phone number is required" });
@@ -168,7 +171,7 @@ router.get('/crossword', async (req, res) => {
         res.status(500).json({ error: "Server error" });
     }
 });
-router.post("/saveSolvedCrossword", async (req, res) => {
+router.post("/saveSolvedCrossword", authMiddleware, async (req, res) => {
   const { userId, crosswordId } = req.body;
 
   try {
@@ -186,7 +189,7 @@ router.post("/saveSolvedCrossword", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
-router.get("/getSolvedCrosswords/:userId", async (req, res) => {
+router.get("/getSolvedCrosswords/:userId", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.params.userId);
     if (!user) return res.status(404).json({ error: "User not found" });
@@ -197,7 +200,7 @@ router.get("/getSolvedCrosswords/:userId", async (req, res) => {
   }
 });
 
-router.post('/synonym/create', async (req, res) => {
+router.post('/synonym/create', authMiddleware, requireAdmin, async (req, res) => {
     const { question, options, answer, explanation, hint } = req.body;
 
     if (!question || !options || answer == null || !explanation) {
@@ -213,8 +216,8 @@ router.post('/synonym/create', async (req, res) => {
         res.status(500).json({ error: "Server error saving synonym quiz" });
     }
 });
-router.get('/synonym', async (req, res) => {
-    const phoneNumber = req.query.phoneNumber;
+router.get('/synonym', authMiddleware, async (req, res) => {
+    const phoneNumber = req.user.phoneNumber; // from the login token
 
     if (!phoneNumber) {
         return res.status(400).json({ error: "Phone number is required" });
@@ -254,8 +257,9 @@ router.get('/synonym', async (req, res) => {
         res.status(500).json({ error: "Server error" });
     }
 });
-router.post('/synonym/check', async (req, res) => {
-    const { quizId, selectedAnswer, phoneNumber } = req.body;
+router.post('/synonym/check', authMiddleware, async (req, res) => {
+    const { quizId, selectedAnswer } = req.body;
+    const phoneNumber = req.user.phoneNumber; // from the login token
 
     // 🎯 Step 1: Parse the incoming answer index to a number
     const selectedIndex = parseInt(selectedAnswer);
@@ -308,7 +312,7 @@ router.post('/synonym/check', async (req, res) => {
         res.status(500).json({ error: "Server error checking synonym" });
     }
 });
-router.post('/antonym/create', async (req, res) => {
+router.post('/antonym/create', authMiddleware, requireAdmin, async (req, res) => {
     const { question, options, answer, explanation, hint } = req.body;
     
     // Parse the answer index to ensure it's a number
@@ -329,8 +333,8 @@ router.post('/antonym/create', async (req, res) => {
     }
 });
 // ✅ NEW: GET /antonyum - Load oldest UNSOLVED Antonym quiz for the user
-router.get('/antonym', async (req, res) => {
-    const phoneNumber = req.query.phoneNumber;
+router.get('/antonym', authMiddleware, async (req, res) => {
+    const phoneNumber = req.user.phoneNumber; // from the login token
 
     if (!phoneNumber) {
         return res.status(400).json({ error: "Phone number is required" });
@@ -367,8 +371,9 @@ router.get('/antonym', async (req, res) => {
     }
 });
 // ✅ NEW: POST /antonyum/check - Check answer, award coin, and mark as solved
-router.post('/antonym/check', async (req, res) => {
-    const { quizId, selectedAnswer, phoneNumber } = req.body;
+router.post('/antonym/check', authMiddleware, async (req, res) => {
+    const { quizId, selectedAnswer } = req.body;
+    const phoneNumber = req.user.phoneNumber; // from the login token
     
     // Parse the incoming answer index to a number
     const selectedIndex = parseInt(selectedAnswer);
@@ -421,7 +426,7 @@ router.post('/antonym/check', async (req, res) => {
     }
 });
 // 🔄 Updated: POST /api/tech-quiz/create
-router.post('/tech-quiz/create', async (req, res) => {
+router.post('/tech-quiz/create', authMiddleware, requireAdmin, async (req, res) => {
  // 🛑 CHANGE: Expect correctAnswerIndex instead of 'answer' string
  const { question, options, correctAnswerIndex } = req.body; 
  
@@ -449,9 +454,10 @@ router.post('/tech-quiz/create', async (req, res) => {
 
 // POST /api/tech-quiz/check-answer
 // 🔄 Updated: POST /api/tech-quiz/check-answer
-router.post('/tech-quiz/check-answer', async (req, res) => {
+router.post('/tech-quiz/check-answer', authMiddleware, async (req, res) => {
     // 🛑 CHANGE: Expect selectedAnswerIndex (0, 1, 2...) instead of 'selectedAnswer' string
-    const { phoneNumber, quizId, selectedAnswerIndex } = req.body; 
+    const { quizId, selectedAnswerIndex } = req.body;
+    const phoneNumber = req.user.phoneNumber; // from the login token 
 
     if (!phoneNumber || !quizId || selectedAnswerIndex == null) {
         return res.status(400).json({ error: 'Missing required fields.' });
@@ -500,57 +506,9 @@ router.post('/tech-quiz/check-answer', async (req, res) => {
 });
 // Add these routes to your existing backend file
 
-// GET /api/user/coin - Get user's coin balance
-router.get('/user/coin', async (req, res) => {
-  try {
-    const phoneNumber = req.query.phoneNumber;
-    
-    if (!phoneNumber) {
-      return res.status(400).json({ error: 'Phone number is required' });
-    }
+// (Coin balance is served by userRoutes.js: GET /api/user/coin)
 
-    const user = await User.findOne({ phoneNumber });
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    res.json({ coins: user.coins || 0 });
-  } catch (err) {
-    console.error('Error fetching user coins:', err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// POST /api/user/add-coin - Add coin to user
-router.post('/user/add-coin', async (req, res) => {
-  try {
-    const { phoneNumber } = req.body;
-    
-    if (!phoneNumber) {
-      return res.status(400).json({ error: 'Phone number is required' });
-    }
-
-    const user = await User.findOne({ phoneNumber });
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    // Increment coins
-    user.coins = (user.coins || 0) + 1;
-    await user.save();
-
-    res.json({ 
-      success: true, 
-      newBalance: user.coins,
-      message: 'Coin added successfully' 
-    });
-  } catch (err) {
-    console.error('Error adding coin:', err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-// Add this route to your backend
-router.get('/crossword/next', async (req, res) => {
+router.get('/crossword/next', authMiddleware, async (req, res) => {
   try {
     const { currentPuzzleId } = req.query;
 
@@ -583,8 +541,9 @@ router.get('/crossword/next', async (req, res) => {
   }
 });
 // POST /api/crossword/check-solution
-router.post('/crossword/check-solution', async (req, res) => {
-    const { phoneNumber, crosswordId, submittedWord } = req.body;
+router.post('/crossword/check-solution', authMiddleware, async (req, res) => {
+    const { crosswordId, submittedWord } = req.body;
+    const phoneNumber = req.user.phoneNumber; // from the login token
     
     // 1. Validate Input
     if (!phoneNumber || !crosswordId || !submittedWord) {
@@ -632,8 +591,8 @@ router.post('/crossword/check-solution', async (req, res) => {
 });
 // GET /api/tech-quiz (For Frontend to fetch the latest quiz)
 // 🔄 Updated: GET /api/tech-quiz
-router.get('/tech-quiz', async (req, res) => {
- const phoneNumber = req.query.phoneNumber;
+router.get('/tech-quiz', authMiddleware, async (req, res) => {
+ const phoneNumber = req.user.phoneNumber; // from the login token
 
  if (!phoneNumber) {
  // Should not happen if frontend sends it, but good practice
@@ -676,7 +635,7 @@ router.get('/tech-quiz', async (req, res) => {
 // Import the new model
 
 // POST /api/sequence/create (For Admin Upload)
-router.post('/sequence/create', async (req, res) => {
+router.post('/sequence/create', authMiddleware, requireAdmin, async (req, res) => {
     const { sequence, correctAnswer, hint } = req.body;
     
     if (!sequence || !correctAnswer || !hint) {
@@ -698,8 +657,8 @@ router.post('/sequence/create', async (req, res) => {
 });
 
 // GET /api/sequence (For Frontend to fetch the latest quiz)
-router.get('/sequence', async (req, res) => {
-    const phoneNumber = req.query.phoneNumber;
+router.get('/sequence', authMiddleware, async (req, res) => {
+    const phoneNumber = req.user.phoneNumber; // from the login token
 
     if (!phoneNumber) {
         return res.status(400).json({ error: "Phone number is required" });
@@ -734,8 +693,9 @@ router.get('/sequence', async (req, res) => {
     }
 });
 // 🆕 POST /sequence/check-solution (This route is currently missing, causing the 404 error)
-router.post('/sequence/check-solution', async (req, res) => {
-    const { phoneNumber, quizId, selectedAnswer } = req.body;
+router.post('/sequence/check-solution', authMiddleware, async (req, res) => {
+    const { quizId, selectedAnswer } = req.body;
+    const phoneNumber = req.user.phoneNumber; // from the login token
 
     // --- Input Validation ---
     if (!phoneNumber || !quizId || selectedAnswer === undefined) {
@@ -790,7 +750,7 @@ router.post('/sequence/check-solution', async (req, res) => {
 // const User = require('../models/users'); 
 
 // 1. POST /analogy/create (Admin Upload)
-router.get('/top-players', async (req, res) => {
+router.get('/top-players', authMiddleware, async (req, res) => {
     try {
         // 1. Query the database for users
         const topPlayers = await User.find(
@@ -809,7 +769,7 @@ router.get('/top-players', async (req, res) => {
     }
 });
 // Analogy Route Fix 1: POST /analogy/create
-router.post('/analogy/create', async (req, res) => {
+router.post('/analogy/create', authMiddleware, requireAdmin, async (req, res) => {
  const { question, options, answer, explanation, hint } = req.body; // <-- Destructure 'hint'
 
  // The 'hint' is optional based on your model, so we only check the required fields.
@@ -838,8 +798,8 @@ router.post('/analogy/create', async (req, res) => {
 });
 // 2. GET /analogy (Fetch for Frontend)
 // Analogy Route Fix 2: GET /analogy (Load oldest UNSOLVED quiz)
-router.get('/analogy', async (req, res) => {
- const phoneNumber = req.query.phoneNumber;
+router.get('/analogy', authMiddleware, async (req, res) => {
+ const phoneNumber = req.user.phoneNumber; // from the login token
 
  if (!phoneNumber) {
  return res.status(400).json({ error: "Phone number is required" });
@@ -883,9 +843,10 @@ router.get('/analogy', async (req, res) => {
 // 3. POST /analogy/check-solution (Validation and Coin Award)
 // POST /analogy/check-solution (Validation and Coin Award)
 // Analogy Route Fix 3: POST /analogy/check-solution (Complete logic)
-router.post('/analogy/check-solution', async (req, res) => {
+router.post('/analogy/check-solution', authMiddleware, async (req, res) => {
     // Note: selectedAnswer will now be the index (0, 1, 2, 3)
-    const { phoneNumber, quizId, selectedAnswer } = req.body; 
+    const { quizId, selectedAnswer } = req.body;
+    const phoneNumber = req.user.phoneNumber; // from the login token 
     
     // Convert selectedAnswer to a number for comparison
     const selectedIndex = parseInt(selectedAnswer); 

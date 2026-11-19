@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import './sudko.css';
+import './admin-uploaders.css';
 
 const blankGrid = Array.from({ length: 9 }, () => Array(9).fill(0));
 

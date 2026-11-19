@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { useToast } from "../components/Toast";
 
 
 const UploadSynonym = ({ backendBase = process.env.REACT_APP_BACKENDURL || '' }) => {
+    const toast = useToast();
     console.log("Backend URL:", backendBase);
 
     const [word, setWord] = useState("");
@@ -21,7 +23,7 @@ const UploadSynonym = ({ backendBase = process.env.REACT_APP_BACKENDURL || '' })
     const handleSubmit = async () => {
         // Validate required fields (word, 4 options, explanation)
         if (!word.trim() || options.some(opt => !opt.trim()) || !explanation.trim()) {
-            alert("Please fill out the word, all four options, and the explanation.");
+            toast.error("Fill in the word, all four options, and the explanation.");
             return;
         }
 
@@ -38,7 +40,7 @@ const UploadSynonym = ({ backendBase = process.env.REACT_APP_BACKENDURL || '' })
 
         try {
             const response = await axios.post(`${backendBase}/api/synonym/create`, payload);
-            alert("Synonym question uploaded successfully!");
+            toast.success("Synonym question saved.");
             console.log(response.data);
 
             // Reset form
@@ -49,7 +51,7 @@ const UploadSynonym = ({ backendBase = process.env.REACT_APP_BACKENDURL || '' })
             setExplanation("");
         } catch (error) {
             console.error(error);
-            alert(`Error uploading synonym question: ${error.response?.data?.error || "Server error"}`);
+            toast.error(`Couldn’t save the synonym question: ${error.response?.data?.error || "Server error"}`);
         }
     };
 

@@ -1,120 +1,212 @@
-/* Reset and base styles */
-body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+/* Login and sign-up pages */
+.auth-page {
   min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--night);
+}
+
+.auth-hero {
+  position: relative;
+  padding: 32px 20px 60px;
+  background:
+    radial-gradient(circle at 80% 10%, rgba(255, 194, 51, 0.18), transparent 45%),
+    radial-gradient(circle at 0% 100%, rgba(61, 220, 151, 0.12), transparent 40%),
+    var(--ink);
+  overflow: hidden;
+}
+
+.auth-hero-inner {
+  position: relative;
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+/* The brand name spelled out in crossword tiles, like the game itself */
+.tile-word {
+  display: flex;
+  gap: 5px;
+  margin: 0;
+}
+
+.tile {
+  display: grid;
+  place-items: center;
+  width: clamp(28px, 8.6vw, 44px);
+  aspect-ratio: 1 / 1.1;
+  border-radius: 9px;
+  background: var(--paper);
+  color: var(--night);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1.2rem, 5.5vw, 1.7rem);
+  line-height: 1;
+  box-shadow: 0 4px 0 #c9c5ee;
+  animation: tile-drop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+  animation-delay: calc(var(--i) * 60ms);
+}
+
+.tile-gold {
+  background: var(--marigold);
+  box-shadow: 0 4px 0 var(--marigold-deep);
+}
+
+.tile:nth-child(2) {
+  margin-right: 8px;
+}
+
+@keyframes tile-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.auth-tagline {
+  margin: 18px 0 14px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  max-width: 30ch;
+}
+
+.auth-games {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.auth-games li {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--line);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.auth-panel {
+  flex: 1;
   display: flex;
   justify-content: center;
-  align-items: center;
+  padding: 0 16px 32px;
+  margin-top: -28px;
+  position: relative;
 }
 
-/* Container for responsiveness */
-.login-form {
-  background-color: #151a1d;
-  padding: 40px 30px;
-  border-radius: 12px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-  width: 90%;
-  max-width: 400px;
-  text-align: center;
-  box-sizing: border-box;
-}
-.phoneNumber{
-  justify-content: center;
-  align-items: center;
-  margin-right: 50px;
-
-}
-/* Headline */
-.login-form h2 {
-  margin-bottom: 20px;
-  color: #2c5364;
-  font-size: 28px;
-  font-weight: 600;
-}
-
-/* Description */
-.login-form p {
-  margin-bottom: 20px;
-  color: #275c72;
-  font-size: 16px;
-  background-color: #f0f4f8;
-  padding: 10px;
-  border-radius: 8px;
-}
-
-/* Inputs */
-.login-form input {
-  width: 95%;
-  padding: 12px 15px;
-  margin: 12px 0;
-  border: 1px solid #ccc;
-  margin-right: 50px;
-  align-items: center;
-  border-radius: 8px;
-  font-size: 16px;
-  transition: border-color 0.3s ease;
-}
-
-.login-form input:focus {
-  border-color: #2c5364;
-  outline: none;
-  box-shadow: 0 0 5px rgba(44, 83, 100, 0.5);
-}
-
-/* Button */
-.login-form button {
+.auth-card {
   width: 100%;
-  padding: 12px;
-  background-color: #2c5364;
-  color: white;
+  max-width: 460px;
+  background: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 28px 22px;
+  align-self: flex-start;
+}
+
+.auth-card h1 {
+  font-size: 1.9rem;
+}
+
+.auth-subtitle {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.password-wrap {
+  position: relative;
+}
+
+.password-wrap .input {
+  padding-right: 72px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 36px;
+  padding: 0 12px;
   border: none;
   border-radius: 8px;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  margin-top: 20px;
-  transition: background-color 0.3s ease;
+  background: var(--surface);
+  color: var(--paper);
+  font-weight: 700;
+  font-size: 0.85rem;
 }
 
-.login-form button:hover {
-  background-color: #1e3c52;
+.auth-form .btn-primary {
+  margin-top: 6px;
 }
 
-/* Signup link */
-.signup-link {
-  margin-top: 20px;
-  font-size: 14px;
-  color: #333;
+.auth-switch {
+  margin: 4px 0 0;
+  text-align: center;
+  color: var(--muted);
 }
 
-.signup-link a {
-  color: #2c5364;
-  font-weight: bold;
+.auth-switch a {
+  color: var(--marigold);
+  font-weight: 800;
   text-decoration: none;
 }
 
-.signup-link a:hover {
+.auth-switch a:hover {
   text-decoration: underline;
 }
 
-/* Responsive tweaks */
-@media (max-width: 480px) {
-  .login-form {
-    padding: 30px 20px;
+/* Desktop: hero on the left, form on the right */
+@media (min-width: 900px) {
+  .auth-page {
+    flex-direction: row;
   }
 
-  .login-form h2 {
-    font-size: 24px;
+  .auth-hero {
+    flex: 1.1;
+    display: flex;
+    align-items: center;
+    padding: 56px;
   }
 
-  .login-form p {
-    font-size: 14px;
+  .auth-hero-inner {
+    margin: 0;
   }
 
-  .login-form button {
-    font-size: 15px;
+  .tile {
+    width: 64px;
+    font-size: 2.3rem;
+    border-radius: 12px;
+  }
+
+  .auth-tagline {
+    font-size: 1.4rem;
+  }
+
+  .auth-panel {
+    flex: 1;
+    margin: 0;
+    align-items: center;
+    padding: 40px;
+  }
+
+  .auth-card {
+    align-self: center;
+    padding: 36px 32px;
   }
 }

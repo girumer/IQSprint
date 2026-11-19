@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { useToast } from "../components/Toast";
 // 👈 Ensure you rename the CSS file too!
 
 const AntonymUploader = ({ backendBase = process.env.REACT_APP_BACKENDURL || '' }) => {
+    const toast = useToast();
   console.log("Backend URL:", backendBase);
 
   // State to hold the question/word
@@ -22,7 +24,7 @@ const AntonymUploader = ({ backendBase = process.env.REACT_APP_BACKENDURL || '' 
   const handleSubmit = async () => {
     // Check required fields: word, 4 options, and explanation
     if (!word.trim() || options.some(opt => !opt.trim()) || !explanation.trim()) {
-      alert("Please fill out the word, all four options, and the explanation.");
+      toast.error("Fill in the word, all four options, and the explanation.");
       return;
     }
 
@@ -40,7 +42,7 @@ const AntonymUploader = ({ backendBase = process.env.REACT_APP_BACKENDURL || '' 
     try {
       // 🔑 The URL path is correct assuming you fixed the route path in your backend
       const response = await axios.post(`${backendBase}/api/antonym/create`, payload);
-      alert("Antonym question uploaded successfully!");
+      toast.success("Antonym question saved.");
       console.log(response.data);
 
       // Reset form
@@ -51,7 +53,7 @@ const AntonymUploader = ({ backendBase = process.env.REACT_APP_BACKENDURL || '' 
       setExplanation("");
     } catch (error) {
       console.error(error);
-      alert(`Error uploading Antonym question: ${error.response?.data?.error || "Server error"}`);
+      toast.error(`Couldn’t save the antonym question: ${error.response?.data?.error || "Server error"}`);
     }
   };
 
